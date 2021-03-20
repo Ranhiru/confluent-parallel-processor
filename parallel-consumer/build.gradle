@@ -1,0 +1,31 @@
+plugins {
+    id 'org.jetbrains.kotlin.jvm'
+}
+
+group 'com.afterpay'
+version '1.0-SNAPSHOT'
+
+repositories {
+    mavenCentral()
+    maven {
+        url "https://packages.confluent.io/maven/"
+    }
+}
+
+tasks.withType(org.jetbrains.kotlin.gradle.tasks.KotlinCompile).all {
+    sourceCompatibility = JavaVersion.VERSION_12
+    targetCompatibility = JavaVersion.VERSION_12
+
+    kotlinOptions {
+        jvmTarget = '12'
+    }
+}
+
+dependencies {
+    implementation(
+            "org.jetbrains.kotlin:kotlin-stdlib",
+            "io.confluent.parallelconsumer:parallel-consumer-core:0.3.0.1",
+            "io.confluent.parallelconsumer:parallel-consumer-vertx:0.3.0.1",
+            "org.slf4j:slf4j-simple:1.7.30"
+    )
+}

@@ -1,0 +1,5 @@
+rootProject.name = 'confluent-parallel-consumer'
+include 'parallel-consumer'
+include 'simple-producer'
+include 'simple-consumer'
+
