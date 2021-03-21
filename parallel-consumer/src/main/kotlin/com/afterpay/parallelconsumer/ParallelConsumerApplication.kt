@@ -15,29 +15,30 @@ import java.util.Properties
 
 class ParallelConsumerApplication {
     companion object {
+        private const val SOURCE_TOPIC = "gps_locations"
+        private const val DESTINATION_TOPIC = "processed_gps_locations"
+
         @JvmStatic
         fun main(args: Array<String>) {
-            println("Booting app")
-
             val kafkaConsumer: Consumer<String, String> = getKafkaConsumer()
             val kafkaProducer: Producer<String, String> = getKafkaProducer()
 
             val options = ParallelConsumerOptions.builder<String, String>()
-                .ordering(ParallelConsumerOptions.ProcessingOrder.KEY)
+                .ordering(ParallelConsumerOptions.ProcessingOrder.PARTITION)
                 .maxConcurrency(100)
                 .consumer(kafkaConsumer)
                 .producer(kafkaProducer)
                 .build()
 
-            val eosStreamProcessor = ParallelStreamProcessor.createEosStreamProcessor(options)
+            val parallelStreamProcessor = ParallelStreamProcessor.createEosStreamProcessor(options)
 
-            val topic = "gps_locations"
-            eosStreamProcessor.subscribe(listOf(topic)) // (4)
+            parallelStreamProcessor.subscribe(listOf(SOURCE_TOPIC))
 
-            eosStreamProcessor.pollAndProduce { record ->
+            parallelStreamProcessor.pollAndProduce { record ->
                 println("Concurrently processing a record: $record")
-                Thread.sleep(10000)
-                ProducerRecord("processed_gps_locations", record.key(), record.value())
+                Thread.sleep(5000)
+
+                ProducerRecord(DESTINATION_TOPIC, record.key(), record.value())
             }
         }
 
@@ -57,8 +58,6 @@ class ParallelConsumerApplication {
             properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092")
             properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
             properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
-            properties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
-            properties.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy")
             return KafkaProducer<String, String>(properties)
         }
     }

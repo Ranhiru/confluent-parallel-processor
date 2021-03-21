@@ -12,19 +12,27 @@ import java.util.Properties
 
 class SimpleConsumer {
     companion object {
+        private const val SOURCE_TOPIC = "gps_locations"
+        private const val DESTINATION_TOPIC = "processed_gps_locations"
 
         @JvmStatic
         fun main(args: Array<String>) {
             val consumer = getKafkaConsumer()
 
-            consumer.subscribe(listOf("gps_locations"))
-            val records = consumer.poll(Duration.ofSeconds(1))
-
+            consumer.subscribe(listOf(SOURCE_TOPIC))
 
             val producer = getKafkaProducer()
-            records.forEach { record ->
-                val producerRecord = ProducerRecord("processed_gps_locations", record.key(), record.value())
-                producer.send(producerRecord)
+
+            while (true) {
+                val records = consumer.poll(Duration.ofSeconds(1))
+                records.forEach { record ->
+                    println("Concurrently processing a record: $record")
+                    Thread.sleep(5000)
+
+
+                    val producerRecord = ProducerRecord(DESTINATION_TOPIC, record.key(), record.value())
+                    producer.send(producerRecord)
+                }
             }
         }
 
@@ -33,7 +41,7 @@ class SimpleConsumer {
             properties.setProperty(ConsumerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092")
             properties.setProperty(ConsumerConfig.KEY_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
             properties.setProperty(ConsumerConfig.VALUE_DESERIALIZER_CLASS_CONFIG, StringDeserializer::class.java.name)
-            properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "kafka-consumer-group")
+            properties.setProperty(ConsumerConfig.GROUP_ID_CONFIG, "kafka-simple-consumer-group")
             properties.setProperty(ConsumerConfig.ENABLE_AUTO_COMMIT_CONFIG, "false")
 
             return KafkaConsumer<String, String>(properties)
@@ -44,8 +52,6 @@ class SimpleConsumer {
             properties.setProperty(ProducerConfig.BOOTSTRAP_SERVERS_CONFIG, "127.0.0.1:9092")
             properties.setProperty(ProducerConfig.KEY_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
             properties.setProperty(ProducerConfig.VALUE_SERIALIZER_CLASS_CONFIG, StringSerializer::class.java.name)
-            properties.setProperty(ProducerConfig.ENABLE_IDEMPOTENCE_CONFIG, "true")
-            properties.setProperty(ProducerConfig.COMPRESSION_TYPE_CONFIG, "snappy")
             return KafkaProducer<String, String>(properties)
         }
     }
